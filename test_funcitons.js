@@ -25,14 +25,14 @@ import * as Helper from "./process/helper.js"
 // }
 
 //-----------------test corrected transcribed conversation-----------------------------------------
-const correctedtranscribedPaths = './test_results/conversations_scenario2.txt';
-const userNames = [ 'ItsRitte', 'NaThatHai', 'myo' ]
-try {
-    const meetingSummaryMarkdown = await getSummaryFromCorrectTranscribedTextPath(correctedtranscribedPaths, userNames);
-    console.log(meetingSummaryMarkdown)
-} catch (err) {
-    console.error(err);
-}
+// const correctedtranscribedPaths = './test_results/conversations_scenario2.txt';
+// const userNames = [ 'ItsRitte', 'NaThatHai', 'myo' ]
+// try {
+//     const meetingSummaryMarkdown = await getSummaryFromCorrectTranscribedTextPath(correctedtranscribedPaths, userNames);
+//     console.log(meetingSummaryMarkdown)
+// } catch (err) {
+//     console.error(err);
+// }
 
 // // ---------------test both summarize and task allocation function------------- (didn't test this yet. if bug just stay patient)
 // try {
@@ -40,6 +40,16 @@ try {
 //     const userNames = ['ItsRitte', 'NaThatHai', 'myo'];
 //     const meetingSummary = await getSummaryFromTranscribedTextPath(transcribedPaths);
 //     const taskAllocation = await getTaskAllocationFromSummary(meetingSummary, userNames);
+//     console.log(taskAllocation);
+// } catch (err) {
+//     console.error(err);
+// }
+
+// const correctedtranscribedPaths = './test_results/conversations_scenario2.txt';
+// const userNames = [ 'ItsRitte', 'NaThatHai', 'myo' ]
+// try {
+//     const meetingSummaryMarkdown = await getSummaryFromCorrectTranscribedTextPath(correctedtranscribedPaths, userNames);
+//     const taskAllocation = await getTaskAllocationFromSummary(meetingSummaryMarkdown, userNames);
 //     console.log(taskAllocation);
 // } catch (err) {
 //     console.error(err);
@@ -56,3 +66,29 @@ try {
 
 // const participants = Helper.extractParticipants(textResult);
 // console.log(participants);
+
+// Let's say you already have two parts:
+const conversationJson1 = {
+    "0": ["NaThatHai", { "text": "Hello 1", "executionTime": "3.1 seconds" }],
+    "3.5": ["ItsRitte", { "text": "Hi!", "executionTime": "2.0 seconds" }]
+  };
+  
+  const conversationJson2 = {
+    "6.0": ["NaThatHai", { "text": "Okay", "executionTime": "1.8 seconds" }],
+    "8.1": ["ItsRitte", { "text": "Cool", "executionTime": "1.5 seconds" }]
+  };
+  
+  // Combine into one object
+  const conversationJson = {
+    ...conversationJson1,
+    ...conversationJson2
+  };
+
+  console.log(conversationJson)
+  
+  // Optional: sort keys numerically if you want chronological order
+  const sortedConversationJson = Object.fromEntries(
+    Object.entries(conversationJson).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
+  );
+  
+  console.log(sortedConversationJson);

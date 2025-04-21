@@ -1,53 +1,10 @@
-import { transcribeAudio } from "../external_api/whisper_api.js";
 import { chatGPTMessage, chatGPTMessageJson } from "../external_api/chatgpt-api.js";
 import { correctTranscriptPrompt, summarizePrompt, taskPlanningPrompt, singleTaskAgentPrompt, taskAllocationPrompt, reflectionPatternPrompt} from "./prompts.js";
-import { vadProcess } from './vad.js';
 import fs from 'fs/promises';
 import * as Helper from './helper.js'
 
 export async function getSummaryFromRecords(userNames, resultFilePaths) {
-    const allConversations = {};
-
-    await Promise.all(userNames.map(async (userName, i) => {
-        const resultPath = resultFilePaths[i];
-
-        try {
-            const userConversationsDict = await vadProcess(resultPath);
-            for (const [key, value] of Object.entries(userConversationsDict)) {
-                const transcribedText = await transcribeAudio(value);
-                allConversations[key] = [userName, transcribedText];
-
-                //delete audio from value which is audio path
-                console.log("try to delete vad processed file")
-                try {
-                    await fs.unlink(value);
-                    console.log(`Deleted audio file: ${value}`);
-                } catch (deleteError) {
-                    console.error(`Error deleting file ${value}:`, deleteError);
-                }
-            }
-            // //delete original audios from resultPath
-            // console.log("try to delete original audio file")
-            // try {
-            //     await fs.unlink(resultPath);
-            //     console.log(`Deleted original audio file: ${resultPath}`);
-            // } catch (deleteError) {
-            //     console.error(`Error deleting original file ${resultPath}:`, deleteError);
-            // }
-
-        } catch (error) {
-            console.error(`Error processing ${userName}:`, error);
-        }
-    }));
-
-    if (Object.keys(allConversations).length === 0) {
-        console.error("No conversations were transcribed!");
-        return "Sorry, no speech was detected.";
-    }
-
-    const sortedConversations = Object.fromEntries(
-        Object.entries(allConversations).sort(([keyA], [keyB]) => parseFloat(keyA) - parseFloat(keyB))
-    );
+    const sortedConversations = await Helper.getVadConversationFromRecords(userNames, resultFilePaths, 0)
     let meetingSummary = await getSummaryFromTranscribed(sortedConversations, userNames)
 
     return meetingSummary;
@@ -71,6 +28,7 @@ export async function getSummaryFromTranscribed(allConversationsJson, userNames)
         //2.2. Add user names to response
         const meetingSummaryMarkdown = await Helper.jsonToMarkdownAddUsernames(meetingSummary, userNames);
         console.log("Step 2 :Summarize Meeting --------------------------------------------------------------------")
+        console.log(meetingSummaryMarkdown)
         return meetingSummaryMarkdown;
 
     } catch (error) {
@@ -78,6 +36,8 @@ export async function getSummaryFromTranscribed(allConversationsJson, userNames)
         return "Error processing transcription.";
     }
 }
+
+
 
 //used for test and debug
 export async function getSummaryFromTranscribedTextPath(transcribedPaths, userNames) {

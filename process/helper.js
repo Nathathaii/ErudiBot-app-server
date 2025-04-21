@@ -1,4 +1,52 @@
 import fs from 'fs/promises';
+import { vadProcess } from './vad.js';
+import { transcribeAudio } from "../external_api/whisper_api.js";
+
+export async function getVadConversationFromRecords(userNames, resultFilePaths, startTime){
+    const allConversations = {};
+    
+    await Promise.all(userNames.map(async (userName, i) => {
+        const resultPath = resultFilePaths[i];
+
+        try {
+            const userConversationsDict = await vadProcess(resultPath);
+            for (const [key, value] of Object.entries(userConversationsDict)) {
+                const transcribedText = await transcribeAudio(value);
+                allConversations[key + startTime] = [userName, transcribedText];
+
+                //delete audio from value which is audio path
+                console.log("try to delete vad processed file")
+                try {
+                    await fs.unlink(value);
+                    console.log(`Deleted audio file: ${value}`);
+                } catch (deleteError) {
+                    console.error(`Error deleting file ${value}:`, deleteError);
+                }
+            }
+            // //delete original audios from resultPath
+            // console.log("try to delete original audio file")
+            // try {
+            //     await fs.unlink(resultPath);
+            //     console.log(`Deleted original audio file: ${resultPath}`);
+            // } catch (deleteError) {
+            //     console.error(`Error deleting original file ${resultPath}:`, deleteError);
+            // }
+
+        } catch (error) {
+            console.error(`Error processing ${userName}:`, error);
+        }
+    }));
+
+    if (Object.keys(allConversations).length === 0) {
+        console.error("No conversations were transcribed!");
+        return "Sorry, no speech was detected.";
+    }
+
+    const sortedConversations = Object.fromEntries(
+        Object.entries(allConversations).sort(([keyA], [keyB]) => parseFloat(keyA) - parseFloat(keyB))
+    );
+    return sortedConversations
+}
 
 export async function getMessageFromJsonResponse(jsonResponseText) {
     const jsonResponse = JSON.parse(jsonResponseText);
@@ -59,39 +107,6 @@ export async function jsonToMarkdownAddUsernames(jsonResponseText, userNames) {
         .map(([key, value]) => `# ${key.replace(/_/g, " ")}\n${formatValue(value)}`) //replace _ with spacepar
         .join("\n\n");
 }
-
-// export async function jsonToMarkdownAddUsernames(jsonResponseText, userNames) {
-//     let data = await getMessageFromJsonResponse(jsonResponseText);
-//     data['participants'] = userNames;
-
-//     function formatValue(value, indent = "") {
-//         if (Array.isArray(value)) {
-//             return value.map(item => {
-//                 if (typeof item === 'object' && item !== null) {
-//                     // If item is an object, format its key-value pairs
-//                     return `\n${indent}-` + formatValue(item, indent + "  ");
-//                 } else {
-//                     // If item is a string or other primitive
-//                     return `\n${indent}- ${item}`;
-//                 }
-//             }).join("");
-//         } else if (typeof value === 'object' && value !== null) {
-//             return Object.entries(value)
-//                 .map(([subKey, subValue]) => {
-//                     return `\n${indent}**${subKey.replace(/_/g, " ")}:**${formatValue(subValue, indent + "  ")}`;
-//                 })
-//                 .join("");
-//         }
-//         return ` ${value}`; // space before primitive to keep formatting pretty
-//     }
-
-//     return Object.entries(data)
-//         .map(([key, value]) => `# ${key.replace(/_/g, " ")}\n${formatValue(value).trim()}`)
-//         .join("\n\n");
-// }
-
-
-
 
 
 //not working yet

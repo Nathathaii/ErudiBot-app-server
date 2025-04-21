@@ -45,6 +45,8 @@ export default {
             }
         }
 
+        console.log(sortedConversations);
+
         try {
             const summary = await getSummaryFromTranscribed(sortedConversations, userNames);
             await interaction.editReply(summary);
